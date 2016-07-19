@@ -2,7 +2,7 @@ import glob
 import os
 import csv
 import errno
-import tkinter as tk
+from tkinter import *
 from tkinter import filedialog
 
 
@@ -25,7 +25,11 @@ def merge_txt_to_csv(path_to_directory):
         component_name = headers_in_file[0][headers_in_file[0].index('Component Name')]
         concentration = headers_in_file[0][headers_in_file[0].index('Calculated Concentration')]
         medication = headers_in_file[0][headers_in_file[0].index('Medication')]
-        patient_number = headers_in_file[0][headers_in_file[0].index('Patient No')]
+        try:
+            patient_number = headers_in_file[0][headers_in_file[0].index('Patient No')]
+        except ValueError:
+            patient_number = headers_in_file[0][headers_in_file[0].index('Patient No.')]
+
         headers = [sample_name, patient_number, component_name, concentration, medication]
         out_csv.writerow(headers)
         # out_csv_opened = csv.writer(open(out_csv_file, 'a', newline=''))
@@ -36,13 +40,18 @@ def merge_txt_to_csv(path_to_directory):
                 component_name = rows[in_file[0].index('Component Name')]
                 sample_name = rows[in_file[0].index('Sample Name')]
                 concentration = rows[in_file[0].index('Calculated Concentration')]
-                if 'N/A' not in concentration:
+
+                if concentration not in ('N/A', '< 0'):
                     concentration = '{0:.2f}'.format(float(concentration))
                 medication = rows[in_file[0].index('Medication')]
-                patient_number = rows[in_file[0].index('Patient No')]
+                try:
+                    patient_number = rows[in_file[0].index('Patient No')]
+                except ValueError:
+                    patient_number = rows[in_file[0].index('Patient No.')]
 
                 values = [sample_name, patient_number, component_name, concentration, medication]
                 out_csv.writerow(values)
+
 
 def silent_remove(filename):
     try:
@@ -51,11 +60,16 @@ def silent_remove(filename):
         if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
             raise  # re-raise exception if a different error occurred
 
-def main():
-    root = tk.Tk()
+def make_file_dialog():
+    root = Tk()
     root.withdraw()
-    file_path = tk.filedialog.askdirectory()
-    raw_folder = os.path.dirname(file_path)
-    merge_txt_to_csv(file_path)
+    root.file_name = filedialog.askdirectory(parent=root, title='Choose a TXT folder')
 
-main()
+    if not root.file_name:
+        sys.exit(0)
+
+    merge_txt_to_csv(root.file_name)
+
+
+if __name__ == "__main__":
+    make_file_dialog()
