@@ -7,63 +7,6 @@ from tkinter import filedialog
 import pandas as pd
 import numpy as np
 
-
-def merge_txt_to_csv(path_to_directory):
-    """ Takes list of files from directory, makes file new each time and sets designated header values"""
-    list_of_files = glob.glob(os.path.join(path_to_directory, '*.txt'))
-    batch_folder = os.path.dirname(path_to_directory)
-    raw_folder = os.path.join(batch_folder, 'ARK_RAW')
-    os.makedirs(raw_folder, exist_ok=True)
-    skip_drugs = ['Modafinil 1', 'Norcodeine 1', 'Methylone 1', 'Mephedrone 1', 'MDPV 1',
-                  'JWH-018N-PentanoicAcid 1', 'JWH-073-4OHbutyl 1', 'JWH-073-4OHbutyl 1',
-                  'LSD 1', 'dextromethorphan 1', 'Ephedrine 1', 'Nalbuphine 1', 'pentazocine 1',
-                  'JWH-073-N-Butanoic acid/JWH-018-5OHpentyl 1', 'Methcathinone 1']
-
-    for file in list_of_files:
-        new_csv_file = os.path.basename(file.replace('.txt', '.csv'))
-        out_csv_file = os.path.join(raw_folder, new_csv_file)
-        silent_remove(out_csv_file)
-        out_csv = csv.writer(open(out_csv_file, 'a', newline=''))
-        headers_in_file = list(csv.reader(open(file, 'rt'), delimiter='\t'))
-        # print(headers_in_file)
-        # original_filename = headers_in_file[0][headers_in_file[0].index('Original Filename')]
-        sample_name = headers_in_file[0][headers_in_file[0].index('Sample Name')]
-        component_name = headers_in_file[0][headers_in_file[0].index('Component Name')]
-        concentration = headers_in_file[0][headers_in_file[0].index('Calculated Concentration')]
-        medication = headers_in_file[0][headers_in_file[0].index('Medication')]
-        sample_id = headers_in_file[0][headers_in_file[0].index('Sample ID')]
-        try:
-            patient_number = headers_in_file[0][headers_in_file[0].index('Patient No')]
-        except ValueError:
-            patient_number = headers_in_file[0][headers_in_file[0].index('Patient No.')]
-
-        headers = [sample_name, patient_number, component_name, concentration, medication,
-                   sample_id]
-        out_csv.writerow(headers)
-        # out_csv_opened = csv.writer(open(out_csv_file, 'a', newline=''))
-        in_file = list(csv.reader(open(file, 'rt'), delimiter='\t'))
-        for rows in in_file:
-            if rows[in_file[0].index('Sample Type')] in 'Unknown' and \
-                    rows[in_file[0].index('Component Name')].endswith('1') and \
-                    rows[in_file[0].index('Component Name')] not in skip_drugs:
-                component_name = rows[in_file[0].index('Component Name')]
-                sample_name = rows[in_file[0].index('Sample Name')]
-                concentration = rows[in_file[0].index('Calculated Concentration')]
-                sample_id = rows[in_file[0].index('Sample ID')]
-
-                if concentration not in ('N/A', '< 0'):
-                    concentration = '{0:.2f}'.format(float(concentration))
-                medication = rows[in_file[0].index('Medication')]
-                try:
-                    patient_number = rows[in_file[0].index('Patient No')]
-                except ValueError:
-                    patient_number = rows[in_file[0].index('Patient No.')]
-
-                values = [sample_name, patient_number, component_name, concentration, medication,
-                          sample_id]
-                out_csv.writerow(values)
-
-
 def silent_remove(filename):
     try:
         os.remove(filename)
@@ -98,6 +41,20 @@ def merge_csv(path_to_directory):
     df.rename(columns={'Sample ID': 'Sample Name', 'Component Name': 'Compound Name'},
               inplace=True)
     df.to_csv(out_csv_file)
+##    Need to update to take loadlist as file, then use directory for ark raw
+    load_list = r'C:\Users\massspec\Downloads\Batch 709 - ARK.xlsx'
+    check_patients_tested(load_list, df)
+    
+def check_patients_tested(load_list, result_df):
+    load_df = pd.read_excel(load_list)
+    
+    
+    print(result_df.loc[result_df['Sample Name'].isin(list(load_df.columns[1]))].head())
+
+
+    print(load_df[load_df.columns[1]].head())
+    print(result_df['Sample Name'].head())
+
 def make_file_dialog():
     root = Tk()
     root.withdraw()
@@ -108,6 +65,6 @@ def make_file_dialog():
 
     merge_csv(root.file_name)
 
-##merge_csv(r'\\192.168.0.242\profiles$\massspec\Desktop\ARK_RAw')
-if __name__ == "__main__":
-    make_file_dialog()
+merge_csv(r'\\192.168.0.242\profiles$\massspec\Desktop\ARK_RAw')
+##if __name__ == "__main__":
+##    make_file_dialog()
