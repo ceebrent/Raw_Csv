@@ -17,32 +17,40 @@ def silent_remove(filename):
 
 def merge_csv(path_to_load_list):
     batch_folder = os.path.dirname(path_to_load_list)
-    new_csv_file = r'ARK_Complete.csv'
+    
+    merged_csv = r'ARK_Complete.csv'
     missing_csv_file = r'Missing_Patients.csv'
     temp_load_list = r'Temp_Loadlist.csv'
     
-    out_csv_file = os.path.join(batch_folder, new_csv_file)
+    ##Remove existing merged csv in case changes need to be made
+    ##And create the new csv to place results into
+    out_csv_file = os.path.join(batch_folder, merged_csv)
     silent_remove(out_csv_file)
 
     out_missing_file = os.path.join(batch_folder, missing_csv_file)
     silent_remove(out_missing_file)
 
+    ##Write headers to new missing patient csv
     with open(out_missing_file, 'w', newline='') as outfile:
         writer = csv.writer(outfile)
         writer.writerow(['#', 'Accession Number', 'Panel'])
 
-
+    ##Create a temp load list csv to add results to, gets deleted at end
     temp_loadlist_file = os.path.join(batch_folder, temp_load_list)
     silent_remove(temp_loadlist_file)
     
     list_of_files = glob.glob(os.path.join(batch_folder, '*.csv'))
     
+    ##For each csv file in list of files we append them to the end
     df = pd.concat((pd.read_csv(f) for f in list_of_files))
     df.sort_values(['Patient No', 'Component Name'], ascending=[True, True], inplace=True)
     df.set_index(['Patient No'], drop=True, inplace=True)
-
+    
+    ##Load csv as excel and convert to csv for use of csv module
     load_df = pd.read_excel(path_to_load_list)
     load_df.to_csv(temp_loadlist_file)
+    
+    ##See check_patients_tested def for docstring
     check_patients_tested(temp_loadlist_file, df, out_missing_file)
     
     df.drop(['Sample Name', 'Medication'], axis=1, inplace=True)
@@ -51,7 +59,11 @@ def merge_csv(path_to_load_list):
               inplace=True)
     df.to_csv(out_csv_file)
     silent_remove(temp_loadlist_file)
-
+    
+ """Read original load list and check if this accession number exists inside our merged_csv.
+    If the patient exists we compare it to several scenarios to determine which analytes it is missing. 
+    Missing patient information is written out to the missing_patient.csv with Patient No, Accession Number
+    and a comment as to which analytes are missing"""
     
 def check_patients_tested(load_list, result_df, out_missing_file):
     grouped = result_df.groupby('Sample ID')
@@ -59,29 +71,32 @@ def check_patients_tested(load_list, result_df, out_missing_file):
     with open(load_list, 'r') as infile, open(out_missing_file, 'a', newline='') as outfile:
         reader = csv.reader(infile)
         writer = csv.writer(outfile)
+        ##skip reading header
         next(reader)
         for row in reader:
-            if result_df["Sample ID"].isin([row[2]]).any():
-                patient = grouped.get_group(row[2])["Sample ID"]
+            sample_id_col = row[2]
+            if result_df["Sample ID"].isin([sample_id_col]).any():
+                patient = grouped.get_group(sample_id_col)["Sample ID"]
                 count = patient.count()
+                cols_to_write = row[1:4]
                 if count == 66:
                     row.insert(3, 'Remove Dextromethorphan')
-                    writer.writerow(row[1:4])
+                    writer.writerow(cols_to_write)
                 elif count == 65:
                     pass
                 elif count in (59, 60):
                     row.insert(3, 'Missing THC')
-                    writer.writerow(row[1:4])
+                    writer.writerow(cols_to_write)
                 elif count == 6:
                     row.insert(3, 'Missing PP')
-                    writer.writerow(row[1:4])
+                    writer.writerow(cols_to_write)
                 else:
                     row.insert(3, 'Missing one or  more')
-                    writer.writerow(row[1:4])
-                    
+                    writer.writerow(cols_to_write)
+            ## Missing patients        
             else:
                 row.insert(3, 'Not in this data')
-                writer.writerow(row[1:4])
+                writer.writerow(cols_to_write)
         
 
 
