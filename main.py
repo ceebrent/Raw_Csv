@@ -60,10 +60,10 @@ def merge_csv(path_to_load_list):
     df.to_csv(out_csv_file)
     silent_remove(temp_loadlist_file)
     
- """Read original load list and check if this accession number exists inside our merged_csv.
-    If the patient exists we compare it to several scenarios to determine which analytes it is missing. 
-    Missing patient information is written out to the missing_patient.csv with Patient No, Accession Number
-    and a comment as to which analytes are missing"""
+"""Read original load list and check if this accession number exists inside our merged_csv.
+If the patient exists we compare it to several scenarios to determine which analytes it is missing.
+Missing patient information is written out to the missing_patient.csv with Patient No, Accession Number
+and a comment as to which analytes are missing"""
     
 def check_patients_tested(load_list, result_df, out_missing_file):
     grouped = result_df.groupby('Sample ID')
@@ -74,11 +74,15 @@ def check_patients_tested(load_list, result_df, out_missing_file):
         ##skip reading header
         next(reader)
         for row in reader:
+            patient_no = row[1]
             sample_id_col = row[2]
+            cols_to_write = row[1:4]
+            if patient_no == '':
+                pass
+            
             if result_df["Sample ID"].isin([sample_id_col]).any():
                 patient = grouped.get_group(sample_id_col)["Sample ID"]
                 count = patient.count()
-                cols_to_write = row[1:4]
                 if count == 66:
                     row.insert(3, 'Remove Dextromethorphan')
                     writer.writerow(cols_to_write)
