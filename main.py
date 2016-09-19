@@ -76,31 +76,34 @@ def check_patients_tested(load_list, result_df, out_missing_file):
         for row in reader:
             patient_no = row[1]
             sample_id_col = row[2]
-            cols_to_write = row[1:4]
             if patient_no == '':
                 pass
             
-            if result_df["Sample ID"].isin([sample_id_col]).any():
+            elif result_df["Sample ID"].isin([sample_id_col]).any():
                 patient = grouped.get_group(sample_id_col)["Sample ID"]
                 count = patient.count()
-                if count == 66:
+                if count > 66:
+                    row.insert(3, 'Possible Duplicate: More than 66 Analytes')
+                    writer.writerow(row[1:4])
+                
+                elif count == 66:
                     row.insert(3, 'Remove Dextromethorphan')
-                    writer.writerow(cols_to_write)
+                    writer.writerow(row[1:4])
                 elif count == 65:
                     pass
                 elif count in (59, 60):
                     row.insert(3, 'Missing THC')
-                    writer.writerow(cols_to_write)
+                    writer.writerow(row[1:4])
                 elif count == 6:
                     row.insert(3, 'Missing PP')
-                    writer.writerow(cols_to_write)
+                    writer.writerow(row[1:4])
                 else:
-                    row.insert(3, 'Missing one or  more')
-                    writer.writerow(cols_to_write)
+                    row.insert(3, 'Missing one or more')
+                    writer.writerow(row[1:4])
             ## Missing patients        
             else:
-                row.insert(3, 'Not in this data')
-                writer.writerow(cols_to_write)
+                row.insert(3, 'Not found in this data')
+                writer.writerow(row[1:4])
         
 
 
