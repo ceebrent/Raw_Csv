@@ -6,6 +6,7 @@ from tkinter import *
 from tkinter import filedialog
 import pandas as pd
 import numpy as np
+import xlrd
 
 def silent_remove(filename):
     try:
@@ -14,57 +15,85 @@ def silent_remove(filename):
         if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
             raise  # re-raise exception if a different error occurred
 
-def merge_csv(path_to_directory):
-##    batch_folder = os.path.dirname(path_to_directory)
+def merge_csv(path_to_load_list):
+    batch_folder = os.path.dirname(path_to_load_list)
     new_csv_file = r'ARK_Complete.csv'
-    out_csv_file = os.path.join(path_to_directory, new_csv_file)
+    missing_csv_file = r'Missing_Patients.csv'
+    temp_load_list = r'Temp_Loadlist.csv'
+    
+    out_csv_file = os.path.join(batch_folder, new_csv_file)
     silent_remove(out_csv_file)
-    list_of_files = glob.glob(os.path.join(path_to_directory, '*.csv'))
-##    header_csv = csv.writer(open(out_csv_file, 'w'))
-##    headers = ['Sample Name', 'Patient No', 'Component Name', 'Calculated Concentration',
-##               'Medication', 'Sample ID']
-##    header_csv.writerow(headers)
-##
-##    for file in list_of_files:
-##        with open(file, 'r') as infile, open(out_csv_file, 'a') as outfile:
-##            next(infile, None)
-##            reader = csv.reader(infile)
-##            writer = csv.writer(outfile)
-##            for row in reader:
-##                writer.writerow(row)
+
+    out_missing_file = os.path.join(batch_folder, missing_csv_file)
+    silent_remove(out_missing_file)
+
+    with open(out_missing_file, 'w', newline='') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(['#', 'Accession Number', 'Panel'])
+
+
+    temp_loadlist_file = os.path.join(batch_folder, temp_load_list)
+    silent_remove(temp_loadlist_file)
+    
+    list_of_files = glob.glob(os.path.join(batch_folder, '*.csv'))
     
     df = pd.concat((pd.read_csv(f) for f in list_of_files))
     df.sort_values(['Patient No', 'Component Name'], ascending=[True, True], inplace=True)
     df.set_index(['Patient No'], drop=True, inplace=True)
+
+    load_df = pd.read_excel(path_to_load_list)
+    load_df.to_csv(temp_loadlist_file)
+    check_patients_tested(temp_loadlist_file, df, out_missing_file)
+    
     df.drop(['Sample Name', 'Medication'], axis=1, inplace=True)
     df['Calculated Concentration'].fillna('N/A', inplace=True)
     df.rename(columns={'Sample ID': 'Sample Name', 'Component Name': 'Compound Name'},
               inplace=True)
     df.to_csv(out_csv_file)
-##    Need to update to take loadlist as file, then use directory for ark raw
-    load_list = r'C:\Users\massspec\Downloads\Batch 709 - ARK.xlsx'
-    check_patients_tested(load_list, df)
-    
-def check_patients_tested(load_list, result_df):
-    load_df = pd.read_excel(load_list)
-    
-    
-    print(result_df.loc[result_df['Sample Name'].isin(list(load_df.columns[1]))].head())
+    silent_remove(temp_loadlist_file)
 
+    
+def check_patients_tested(load_list, result_df, out_missing_file):
+    grouped = result_df.groupby('Sample ID')
+    
+    with open(load_list, 'r') as infile, open(out_missing_file, 'a', newline='') as outfile:
+        reader = csv.reader(infile)
+        writer = csv.writer(outfile)
+        next(reader)
+        for row in reader:
+            if result_df["Sample ID"].isin([row[2]]).any():
+                patient = grouped.get_group(row[2])["Sample ID"]
+                count = patient.count()
+                if count == 66:
+                    row.insert(3, 'Remove Dextromethorphan')
+                    writer.writerow(row[1:4])
+                elif count == 65:
+                    pass
+                elif count in (59, 60):
+                    row.insert(3, 'Missing THC')
+                    writer.writerow(row[1:4])
+                elif count == 6:
+                    row.insert(3, 'Missing PP')
+                    writer.writerow(row[1:4])
+                else:
+                    row.insert(3, 'Missing one or  more')
+                    writer.writerow(row[1:4])
+                    
+            else:
+                row.insert(3, 'Not in this data')
+                writer.writerow(row[1:4])
+        
 
-    print(load_df[load_df.columns[1]].head())
-    print(result_df['Sample Name'].head())
 
 def make_file_dialog():
     root = Tk()
     root.withdraw()
-    root.file_name = filedialog.askdirectory(parent=root, title='Choose a TXT folder')
+    root.file_name = filedialog.askopenfilename(parent=root, title='Choose the load list')
 
     if not root.file_name:
         sys.exit(0)
 
     merge_csv(root.file_name)
 
-merge_csv(r'\\192.168.0.242\profiles$\massspec\Desktop\ARK_RAw')
-##if __name__ == "__main__":
-##    make_file_dialog()
+if __name__ == "__main__":
+    make_file_dialog()
