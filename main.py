@@ -21,6 +21,7 @@ def merge_csv(path_to_load_list):
     merged_csv = r'ARK_Complete.csv'
     missing_csv_file = r'Missing_Patients.csv'
     temp_load_list = r'Temp_Loadlist.csv'
+    meth_load_list = r'Meth_DL.csv'
     
     ##Remove existing merged csv in case changes need to be made
     ##And create the new csv to place results into
@@ -38,6 +39,9 @@ def merge_csv(path_to_load_list):
     ##Create a temp load list csv to add results to, gets deleted at end
     temp_loadlist_file = os.path.join(batch_folder, temp_load_list)
     silent_remove(temp_loadlist_file)
+
+    meth_loadlist_file = os.path.join(batch_folder, meth_load_list)
+    silent_remove(meth_loadlist_file)
     
     list_of_files = glob.glob(os.path.join(batch_folder, '*.csv'))
     
@@ -45,6 +49,10 @@ def merge_csv(path_to_load_list):
     df = pd.concat((pd.read_csv(f) for f in list_of_files))
     df.sort_values(['Patient No', 'Component Name'], ascending=[True, True], inplace=True)
     df.set_index(['Patient No'], drop=True, inplace=True)
+
+    df_meth = df[df['Component Name'] == 'Methamphetamine 1']
+    df_meth['Calculated Concentration'] = df_meth['Calculated Concentration'].convert_objects(convert_numeric=True)
+    df_meth[df_meth['Calculated Concentration'] > 100].to_csv(meth_loadlist_file)
     
     ##Load csv as excel and convert to csv for use of csv module
     load_df = pd.read_excel(path_to_load_list)
