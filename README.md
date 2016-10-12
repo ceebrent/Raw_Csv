@@ -1,2 +1,2 @@
-# Raw_Csv
-Single .exe that opens up a directory selector to generate "Raw_CSV" files that contain specific information from mass spec raw data in order to QC patient data.
+# One File Generator
+Single .exe that requires user to select a master list (load list) from a directory that contains all of the relevant 'raw_csv' data from that days batch.  All of the csv data will be combined into a single csv file and then sorted on patient number and component name (Analyte).  Next, a module will parse the combined csv file and then compare each patient back to the master list(load list) and then determine if any additional testing is required on the patient. Will out put missing data to a csv and will also generate a "meth DL" list for reflex testing based on positive methamphetamine.
