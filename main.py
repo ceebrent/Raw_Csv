@@ -14,8 +14,10 @@ def merge_txt_to_csv(path_to_directory):
     os.makedirs(raw_folder, exist_ok=True)
     skip_drugs = ['Modafinil 1', 'Norcodeine 1', 'Methylone 1', 'Mephedrone 1', 'MDPV 1',
                   'JWH-018N-PentanoicAcid 1', 'JWH-073-4OHbutyl 1', 'JWH-073-4OHbutyl 1',
-                  'LSD 1', 'dextromethorphan 1', 'Dextromethorphan 1', 'Ephedrine 1', 'Nalbuphine 1', 'pentazocine 1',
-                  'JWH-073-N-Butanoic acid/JWH-018-5OHpentyl 1', 'Methcathinone 1']
+                  'LSD 1', 'dextromethorphan 1', 'Dextromethorphan 1', 'Ephedrine 1', 'Nalbuphine 1',
+                  'pentazocine 1', 'JWH-073-N-Butanoic acid/JWH-018-5OHpentyl 1',
+                  'Methcathinone 1', '6-beta-Naltrexol 1', 'o-Desmethyltramadol 1',
+                  'Norketamine 1', 'Mitragynine 1', 'Ritalinic Acid 1']
 
     for file in list_of_files:
         new_csv_file = os.path.basename(file.replace('.txt', '.csv'))
